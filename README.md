@@ -1,2 +1,3 @@
 # IoTLogic-core
-Core part of IoTLogic - IoT controller platform using single, unified logic on multiple devices
+Core part of IoTLogic - IoT controller platform using single, unified logic on
+multiple devices
