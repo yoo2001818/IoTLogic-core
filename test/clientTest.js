@@ -2,30 +2,19 @@ import Environment from '../src/environment';
 import readline from 'readline';
 import { tokenize, parse } from 'r6rs';
 
-import { WebSocketServerConnector } from 'locksmith-connector-ws';
+import { WebSocketClientConnector } from 'locksmith-connector-ws';
 
-let connector = new WebSocketServerConnector({
-  port: 23482
-});
+let connector = new WebSocketClientConnector('ws://localhost:23482');
 
-let environment = new Environment(connector, {
-  dynamic: true,
-  dynamicPushWait: 10,
-  dynamicTickWait: 10,
-  fixedTick: 50,
-  fixedBuffer: 0,
-  disconnectWait: 10000,
-  freezeWait: 1000
-});
+let environment = new Environment(connector);
 connector.start();
-environment.start();
 
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout
 });
 
-console.log('IoTLogic-core REPL (Server)');
+console.log('IoTLogic-core REPL (Client)');
 
 let backlog = '';
 
