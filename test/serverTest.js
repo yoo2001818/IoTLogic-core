@@ -20,6 +20,22 @@ let environment = new Environment(connector, {
 connector.start();
 environment.start();
 
+environment.synchronizer.on('error', err => {
+  console.log((err && err.stack) || err);
+});
+environment.synchronizer.on('connect', () => {
+  console.log('Connected!');
+});
+environment.synchronizer.on('disconnect', () => {
+  console.log('Disconnected!');
+});
+environment.synchronizer.on('freeze', () => {
+  console.log('Synchronizer frozen');
+});
+environment.synchronizer.on('unfreeze', () => {
+  console.log('Synchronizer unfrozen');
+});
+
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout

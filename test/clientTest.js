@@ -9,6 +9,22 @@ let connector = new WebSocketClientConnector('ws://localhost:23482');
 let environment = new Environment(connector);
 connector.start();
 
+environment.synchronizer.on('error', err => {
+  console.log((err && err.stack) || err);
+});
+environment.synchronizer.on('connect', () => {
+  console.log('Connected!');
+});
+environment.synchronizer.on('disconnect', () => {
+  console.log('Disconnected!');
+});
+environment.synchronizer.on('freeze', () => {
+  console.log('Synchronizer frozen');
+});
+environment.synchronizer.on('unfreeze', () => {
+  console.log('Synchronizer unfrozen');
+});
+
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout
@@ -18,7 +34,7 @@ console.log('IoTLogic-core REPL (Client)');
 
 let backlog = '';
 
-const read = (msg = 'scm> ') => {
+const read = (msg = ('scm (' + environment.synchronizer.rtt + 'ms)> ')) => {
   rl.question(msg, (answer) => {
     let code = backlog + answer;
     try {

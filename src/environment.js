@@ -1,4 +1,4 @@
-import Synchronizer from 'locksmith';
+import { Synchronizer, HostSynchronizer } from 'locksmith';
 import { Machine } from 'r6rs';
 
 export default class Environment {
@@ -7,15 +7,21 @@ export default class Environment {
     this.machine = new Machine();
     // TODO Integrate r6rs-async-io
     // Initialize lockstep environment
-    let synchronizer = new Synchronizer(this, connector, config);
-    synchronizer.host = config != null;
+    let synchronizer;
+    if (config == null) {
+      synchronizer = new Synchronizer(this, connector, config);
+    } else {
+      synchronizer = new HostSynchronizer(this, connector, config);
+      synchronizer.on('connect', () => {
+        // Reset entire machine status, since we can't serialize Scheme state.
+        synchronizer.push({
+          type: 'reset'
+        });
+      });
+    }
     connector.synchronizer = synchronizer;
 
     this.synchronizer = synchronizer;
-    // Evaluation may want to use callbacks, so this remembers the callback
-    // to call.
-    this.evalCallbacks = {};
-    this.evalCallbackId = 0;
   }
   setPayload(payload) {
     this.payload = payload;
@@ -44,45 +50,22 @@ export default class Environment {
     if (action == null) return;
     switch (action.type) {
     case 'eval': {
-      let result, errored;
-      try {
-        // Just run the machine. Nothing else..
-        result = this.machine.evaluate(action.data);
-      } catch (e) {
-        this.machine.clearStack();
-        errored = true;
-        result = e;
-      }
-      // TODO Locksmith should support callbacks
-      if (action.id >= this.evalCallbackId) {
-        this.evalCallbackId = action.id + 1;
-      }
-      if (this.evalCallbacks[action.id]) {
-        if (errored) {
-          this.evalCallbacks[action.id].reject(result);
-        } else {
-          this.evalCallbacks[action.id].resolve(result);
-        }
-        delete this.evalCallbacks[action.id];
-      }
-      break;
+      this.machine.clearStack();
+      return this.machine.evaluate(action.data);
     }
     case 'io':
       // TODO
       break;
+    case 'reset':
+      console.log('Resetting machine state');
+      this.machine = new Machine();
+      this.runPayload();
     }
   }
   evaluate(code) {
-    let promise = new Promise((resolve, reject) => {
-      this.evalCallbacks[this.evalCallbackId] = {
-        resolve, reject
-      };
-    });
-    this.synchronizer.push({
+    return this.synchronizer.push({
       type: 'eval',
-      id: this.evalCallbackId ++,
       data: code
-    });
-    return promise;
+    }, true);
   }
 }
