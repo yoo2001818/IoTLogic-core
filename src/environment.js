@@ -1,11 +1,13 @@
 import { Synchronizer, HostSynchronizer } from 'locksmith';
 import { Machine } from 'r6rs';
+import IOManager from 'r6rs-async-io';
+import asyncIORequire from './asyncIORequire';
 
 export default class Environment {
-  constructor(connector, config) {
+  constructor(name, connector, config) {
+    this.name = name;
     // Initialize Scheme environment
-    this.machine = new Machine();
-    // TODO Integrate r6rs-async-io
+    this.reset();
     // Initialize lockstep environment
     let synchronizer;
     if (config == null) {
@@ -23,6 +25,12 @@ export default class Environment {
 
     this.synchronizer = synchronizer;
   }
+  reset() {
+    this.machine = new Machine();
+    this.ioManager = new IOManager(this.machine);
+    this.machine.loadLibrary(this.ioManager.getLibrary());
+    this.ioManager.resolver.addLibrary(asyncIORequire);
+  }
   setPayload(payload) {
     this.payload = payload;
   }
@@ -33,7 +41,8 @@ export default class Environment {
   getState() {
     // It's hard to serialize entire Scheme interpreter state...
     // It's necessary though, however.
-    console.log(this.machine);
+    console.log(this.machine.rootParameters);
+    console.log(this.machine.expanderRoot);
     // Still, try to send the initial payload.
     return this.payload;
   }
@@ -58,7 +67,8 @@ export default class Environment {
       break;
     case 'reset':
       console.log('Resetting machine state');
-      this.machine = new Machine();
+      this.ioManager.cancelAll();
+      this.reset();
       this.runPayload();
     }
   }

@@ -8,7 +8,7 @@ let connector = new WebSocketServerConnector({
   port: 23482
 });
 
-let environment = new Environment(connector, {
+let environment = new Environment('server', connector, {
   dynamic: true,
   dynamicPushWait: 10,
   dynamicTickWait: 10,

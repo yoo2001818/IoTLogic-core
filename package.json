@@ -25,7 +25,7 @@
     "debug": "^2.2.0",
     "locksmith": "^0.2.2",
     "locksmith-connector-ws": "^0.2.0",
-    "r6rs": "^0.1.6",
-    "r6rs-async-io": "^0.1.1"
+    "r6rs": "^0.1.10",
+    "r6rs-async-io": "^0.1.5"
   }
 }
