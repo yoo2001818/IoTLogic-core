@@ -6,7 +6,7 @@ import { WebSocketClientConnector } from 'locksmith-connector-ws';
 
 let connector = new WebSocketClientConnector('ws://localhost:23482');
 
-let environment = new Environment('client', connector);
+let environment = new Environment(process.argv[2] || 'client', connector);
 connector.start();
 
 environment.synchronizer.on('error', err => {
@@ -34,7 +34,8 @@ console.log('IoTLogic-core REPL (Client)');
 
 let backlog = '';
 
-const read = (msg = ('scm (' + environment.synchronizer.rtt + 'ms)> ')) => {
+const read = (msg = ('scm@' + environment.name +
+  ' (' + environment.synchronizer.rtt + 'ms)> ')) => {
   rl.question(msg, (answer) => {
     let code = backlog + answer;
     try {

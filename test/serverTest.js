@@ -1,5 +1,6 @@
 import Environment from '../src/environment';
 import readline from 'readline';
+import fs from 'fs';
 import { tokenize, parse } from 'r6rs';
 
 import { WebSocketServerConnector } from 'locksmith-connector-ws';
@@ -17,6 +18,13 @@ let environment = new Environment('server', connector, {
   disconnectWait: 10000,
   freezeWait: 1000
 });
+
+if (process.argv[2]) {
+  // Read payload file
+  let payload = fs.readFileSync(process.argv[2], 'utf-8');
+  environment.setPayload(payload);  
+}
+
 connector.start();
 environment.start();
 
@@ -45,7 +53,7 @@ console.log('IoTLogic-core REPL (Server)');
 
 let backlog = '';
 
-const read = (msg = 'scm> ') => {
+const read = (msg = 'scm@server> ') => {
   rl.question(msg, (answer) => {
     let code = backlog + answer;
     try {

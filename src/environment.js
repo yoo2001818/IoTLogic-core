@@ -2,6 +2,7 @@ import { Synchronizer, HostSynchronizer } from 'locksmith';
 import { Machine } from 'r6rs';
 import IOManager from 'r6rs-async-io';
 import asyncIORequire from './asyncIORequire';
+import Resolver from './resolver';
 
 export default class Environment {
   constructor(name, connector, config) {
@@ -27,7 +28,7 @@ export default class Environment {
   }
   reset() {
     this.machine = new Machine();
-    this.ioManager = new IOManager(this.machine);
+    this.ioManager = new IOManager(this.machine, new Resolver(this.name));
     this.machine.loadLibrary(this.ioManager.getLibrary());
     this.ioManager.resolver.addLibrary(asyncIORequire);
   }
@@ -47,9 +48,7 @@ export default class Environment {
     return this.payload;
   }
   loadState(state) {
-    this.machine = new Machine();
     this.setPayload(state);
-    this.runPayload();
   }
   start() {
     this.synchronizer.start();
