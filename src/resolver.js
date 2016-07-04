@@ -1,5 +1,7 @@
 import { DefaultResolver } from 'r6rs-async-io';
 
+const NOOP = () => {};
+
 // Resolver that considers device name... This actually creates no-op for
 // different device names.
 export default class Resolver extends DefaultResolver {
@@ -13,8 +15,8 @@ export default class Resolver extends DefaultResolver {
     if (keyword.indexOf(':') === -1) return this.directives[keyword];
     let [deviceName, commandName] = keyword.split(':');
     if (deviceName !== this.name) {
-      // TODO Create no-op
-      return false;
+      // Create no-op
+      return NOOP;
     }
     return this.directives[commandName];
   }

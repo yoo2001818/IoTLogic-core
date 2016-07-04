@@ -1,6 +1,6 @@
 import { Synchronizer, HostSynchronizer } from 'locksmith';
-import { Machine } from 'r6rs';
-import IOManager from 'r6rs-async-io';
+import { Machine, PairValue, SymbolValue } from 'r6rs';
+import IOManager, { desugar } from 'r6rs-async-io';
 import asyncIORequire from './asyncIORequire';
 import Resolver from './resolver';
 
@@ -28,7 +28,24 @@ export default class Environment {
   }
   reset() {
     this.machine = new Machine();
-    this.ioManager = new IOManager(this.machine, new Resolver(this.name));
+    this.ioManager = new IOManager(this.machine, new Resolver(this.name),
+      (listener, data, remove) => {
+        // If listener's callback is null, that means it's null on other side
+        // too - we just ignore it.
+        if (listener.callback == null) {
+          if (listener.once || remove === true) {
+            this.ioManager.cancel(listener.id);
+          }
+          return;
+        }
+        // :P... Data must be a plain JSON object.
+        this.synchronizer.push({
+          type: 'io',
+          id: listener.id,
+          data, remove
+        });
+      }
+    );
     this.machine.loadLibrary(this.ioManager.getLibrary());
     this.ioManager.resolver.addLibrary(asyncIORequire);
   }
@@ -61,9 +78,25 @@ export default class Environment {
       this.machine.clearStack();
       return this.machine.evaluate(action.data);
     }
-    case 'io':
-      // TODO
-      break;
+    case 'io': {
+      // (Forcefully) handle callback from remote.
+      let listener = this.ioManager.listeners[action.id];
+      // This can't happen! Still, try to ignore it.
+      if (listener == null) return;
+      if (listener.callback == null) {
+        if (listener.once || action.remove === true) {
+          this.ioManager.cancel(listener.id);
+        }
+        return;
+      }
+      let dataVal = desugar(action.data);
+      if (dataVal) {
+        dataVal = dataVal.map(v => new PairValue(new SymbolValue('quote'),
+          new PairValue(v)));
+      }
+      let pair = new PairValue(listener.callback, dataVal);
+      return this.machine.evaluate(pair, true);
+    }
     case 'reset':
       console.log('Resetting machine state');
       this.ioManager.cancelAll();

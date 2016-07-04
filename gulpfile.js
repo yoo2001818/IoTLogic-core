@@ -35,4 +35,10 @@ gulp.task('babel', function() {
     .pipe(gulp.dest('lib'));
 });
 
+gulp.task('buildTest', function() {
+  return gulp.src(['test/**/*.js'])
+    .pipe(babel())
+    .pipe(gulp.dest('lib-test'));
+});
+
 gulp.task('default', ['babel']);
