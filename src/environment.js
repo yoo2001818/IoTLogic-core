@@ -1,7 +1,7 @@
 import { Synchronizer, HostSynchronizer } from 'locksmith';
 import { Machine, PairValue, SymbolValue } from 'r6rs';
 import IOManager, { desugar } from 'r6rs-async-io';
-import asyncIORequire from './asyncIORequire';
+import asyncBaseLib from './asyncBaseLib';
 import Resolver from './resolver';
 
 export default class Environment {
@@ -47,7 +47,7 @@ export default class Environment {
       }
     );
     this.machine.loadLibrary(this.ioManager.getLibrary());
-    this.ioManager.resolver.addLibrary(asyncIORequire);
+    this.ioManager.resolver.addLibrary(asyncBaseLib);
   }
   setPayload(payload) {
     this.payload = payload;

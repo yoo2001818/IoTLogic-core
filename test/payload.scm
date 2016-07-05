@@ -20,3 +20,8 @@
     (string-append (stringify target) ":require") name
   ))
 ))
+
+(define (start-wiringPi target)
+  (io-exec (string-append (stringify target) ":require") "wiring-pi")
+  (io-exec (string-append (stringify target) ":wiringPi/setup") '(wpi))
+)

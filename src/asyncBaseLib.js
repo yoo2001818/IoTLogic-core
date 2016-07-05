@@ -1,4 +1,4 @@
-import { toObject, STRING } from 'r6rs';
+import { toObject, STRING, NUMBER } from 'r6rs';
 
 export default {
   'require': (params, callback, _, io) => {
@@ -27,5 +27,15 @@ export default {
     } else {
       setTimeout(() => callback(['Library not found'], true), 0);
     }
+  },
+  'timer': (params, callback) => {
+    let options;
+    if (params.type === NUMBER) {
+      options = params.value;
+    } else {
+      options = toObject(params)[0];
+    }
+    let timerId = setInterval(callback, options);
+    return () => clearInterval(timerId);
   }
 };
