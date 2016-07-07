@@ -4,6 +4,12 @@ import IOManager, { desugar } from 'r6rs-async-io';
 import asyncBaseLib from './asyncBaseLib';
 import Resolver from './resolver';
 
+// Since base library *never* changes, I'm pretty sure it's possible to
+// cache library data on global variables.
+// Async library has almost no cost for reloading, so we don't need caching
+// for that.
+const LIBRARY_CACHE = {};
+
 export default class Environment {
   constructor(name, connector, config) {
     this.name = name;
@@ -27,7 +33,7 @@ export default class Environment {
     this.synchronizer = synchronizer;
   }
   reset() {
-    this.machine = new Machine();
+    this.machine = new Machine(!LIBRARY_CACHE.loaded, LIBRARY_CACHE);
     this.ioManager = new IOManager(this.machine, new Resolver(this.name),
       (listener, data, remove) => {
         // If listener's callback is null, that means it's null on other side
@@ -46,7 +52,10 @@ export default class Environment {
         });
       }
     );
-    this.machine.loadLibrary(this.ioManager.getLibrary());
+    if (!LIBRARY_CACHE.loaded) {
+      this.machine.loadLibrary(this.ioManager.getLibrary());
+    }
+    LIBRARY_CACHE.loaded = true;
     this.ioManager.resolver.addLibrary(asyncBaseLib);
   }
   setPayload(payload) {
