@@ -11,8 +11,9 @@ import Resolver from './resolver';
 const LIBRARY_CACHE = {};
 
 export default class Environment {
-  constructor(name, connector, config) {
+  constructor(name, connector, config, headless) {
     this.name = name;
+    this.headless = headless;
     // Initialize Scheme environment
     this.reset();
     // We don't need clients variable - since referencing client by ID is
@@ -46,6 +47,7 @@ export default class Environment {
     this.connector = connector;
   }
   reset() {
+    if (this.headless) return;
     if (this.ioManager != null) this.ioManager.cancelAll();
     this.machine = new Machine(!LIBRARY_CACHE.loaded, LIBRARY_CACHE);
     this.ioManager = new IOManager(this.machine, new Resolver(this.name),
@@ -80,13 +82,18 @@ export default class Environment {
   }
   runPayload() {
     if (this.payload == null) return;
+    if (this.headless) return;
     this.machine.evaluate(this.payload);
   }
   getState() {
-    // It's hard to serialize entire Scheme interpreter state...
-    // It's necessary though, however.
-    console.log(this.machine.rootParameters);
-    console.log(this.machine.expanderRoot);
+    // What if the server is headless? We have to retrieve the data
+    // from remote... I suppose?
+    if (!this.headless) {
+      // It's hard to serialize entire Scheme interpreter state...
+      // It's necessary though, however.
+      console.log(this.machine.rootParameters);
+      console.log(this.machine.expanderRoot);
+    }
     // Still, try to send the initial payload.
     return {
       payload: this.payload,
