@@ -2,6 +2,7 @@ import { Synchronizer, HostSynchronizer } from 'locksmith';
 import { Machine, PairValue, SymbolValue } from 'r6rs';
 import IOManager, { desugar } from 'r6rs-async-io';
 import asyncBaseLib from './asyncBaseLib';
+import baseLib from './baseLib';
 import Resolver from './resolver';
 
 // Since base library *never* changes, I'm pretty sure it's possible to
@@ -69,11 +70,14 @@ export default class Environment {
       }
     );
     if (!LIBRARY_CACHE.loaded) {
+      this.machine.loadLibrary(baseLib);
       this.machine.loadLibrary(this.ioManager.getLibrary());
     }
     LIBRARY_CACHE.loaded = true;
-
     this.ioManager.resolver.addLibrary(asyncBaseLib);
+
+    // Expose the Environment object to base library
+    this.machine.iotLogicEnv = this;
 
     this.runPayload();
   }
@@ -124,10 +128,12 @@ export default class Environment {
     if (action == null) return;
     switch (action.type) {
     case 'eval': {
+      if (this.headless) return;
       this.machine.clearStack();
       return this.machine.evaluate(action.data);
     }
     case 'io': {
+      if (this.headless) return;
       // (Forcefully) handle callback from remote.
       let listener = this.ioManager.listeners[action.id];
       // This can't happen! Still, try to ignore it.
