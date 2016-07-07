@@ -1,4 +1,5 @@
 (display "Payload reloading")
+(newline)
 ; Just some sugaring
 (define (stringify x)
   (cond
@@ -11,19 +12,19 @@
 )
 
 (define (notify target message)
-  (io-exec (string-append (stringify target) ":notifier/send") message)
+  (io-exec (list target 'notifier/send) message)
 )
 
 (define require (case-lambda
   ((name) (io-exec 'require name))
   ((target name) (io-exec
-    (string-append (stringify target) ":require") name
+    (list target 'require) name
   ))
 ))
 
 (define (start-wiringPi target)
-  (io-exec (string-append (stringify target) ":require") "wiring-pi")
-  (io-exec (string-append (stringify target) ":wiringPi/setup") '(wpi))
+  (io-exec (list target 'require) "wiring-pi")
+  (io-exec (list target 'wiringPi/setup) '(wpi))
 )
 
 ; Test entry point
@@ -31,7 +32,7 @@
 ; No escaping yet! We need it though.
 (define (confirm target message callback)
   (io-exec
-    (string-append (stringify target) ":process/exec")
+    (list target 'process/exec)
     (string-append "zenity --question --text \""
       message
       "\""

@@ -77,6 +77,7 @@ export default class Environment {
     this.ioManager.resolver.addLibrary(asyncBaseLib);
 
     // Expose the Environment object to base library
+    this.machine.asyncIO = this.ioManager;
     this.machine.iotLogicEnv = this;
 
     this.runPayload();
