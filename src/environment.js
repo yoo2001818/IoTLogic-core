@@ -15,24 +15,38 @@ export default class Environment {
     this.name = name;
     // Initialize Scheme environment
     this.reset();
+    // We don't need clients variable - since referencing client by ID is
+    // not used anyway.
+    this.clientList = [];
     // Initialize lockstep environment
     let synchronizer;
     if (config == null) {
       synchronizer = new Synchronizer(this, connector, config);
     } else {
       synchronizer = new HostSynchronizer(this, connector, config);
-      synchronizer.on('connect', () => {
-        // Reset entire machine status, since we can't serialize Scheme state.
+      // TODO Add validator
+      synchronizer.on('connect', clientId => {
         synchronizer.push({
-          type: 'reset'
+          type: 'connect',
+          data: Object.assign({}, synchronizer.clients[clientId].meta, {
+            id: clientId
+          })
+        });
+      });
+      synchronizer.on('disconnect', clientId => {
+        synchronizer.push({
+          type: 'disconnect',
+          data: clientId
         });
       });
     }
     connector.synchronizer = synchronizer;
 
     this.synchronizer = synchronizer;
+    this.connector = connector;
   }
   reset() {
+    if (this.ioManager != null) this.ioManager.cancelAll();
     this.machine = new Machine(!LIBRARY_CACHE.loaded, LIBRARY_CACHE);
     this.ioManager = new IOManager(this.machine, new Resolver(this.name),
       (listener, data, remove) => {
@@ -56,7 +70,10 @@ export default class Environment {
       this.machine.loadLibrary(this.ioManager.getLibrary());
     }
     LIBRARY_CACHE.loaded = true;
+
     this.ioManager.resolver.addLibrary(asyncBaseLib);
+
+    this.runPayload();
   }
   setPayload(payload) {
     this.payload = payload;
@@ -71,14 +88,30 @@ export default class Environment {
     console.log(this.machine.rootParameters);
     console.log(this.machine.expanderRoot);
     // Still, try to send the initial payload.
-    return this.payload;
+    return {
+      payload: this.payload,
+      clientList: this.clientList
+    };
   }
   loadState(state) {
-    this.setPayload(state);
+    this.setPayload(state.payload);
+    this.clientList = state.clientList;
   }
   start() {
-    this.synchronizer.start();
-    this.runPayload();
+    this.connector.start({
+      name: this.name,
+      host: this.synchronizer.host
+    });
+    // Populate client list; synchronizer doesn't emit connect event for
+    // host.
+    if (this.synchronizer.host) {
+      let selfId = this.connector.getHostId();
+      this.clientList = [Object.assign({},
+        this.synchronizer.clients[selfId].meta,
+        { id: selfId }
+      )];
+      this.runPayload();
+    }
   }
   run(action) {
     if (action == null) return;
@@ -106,11 +139,26 @@ export default class Environment {
       let pair = new PairValue(listener.callback, dataVal);
       return this.machine.evaluate(pair, true);
     }
-    case 'reset':
+    case 'connect':
+      // Should connect / disconnect be considered as I/O event too?
+      console.log('A client connected');
+      this.clientList.push(action.data);
+      console.log(this.clientList);
       console.log('Resetting machine state');
-      this.ioManager.cancelAll();
       this.reset();
-      this.runPayload();
+      break;
+    case 'disconnect': {
+      console.log('A client disconnected');
+      // Disconnection doesn't have to reset machine state.
+      // Get rid of the client on the array
+      let clientIndex = this.clientList.findIndex(o => o.id === action.data);
+      if (clientIndex === -1) {
+        // What?
+        throw new Error('Disconnect event malformed: ' + action.data);
+      }
+      this.clientList.splice(clientIndex, 1);
+      console.log(this.clientList);
+    }
     }
   }
   evaluate(code) {

@@ -22,10 +22,9 @@ let environment = new Environment('server', connector, {
 if (process.argv[2]) {
   // Read payload file
   let payload = fs.readFileSync(process.argv[2], 'utf-8');
-  environment.setPayload(payload);  
+  environment.setPayload(payload);
 }
 
-connector.start();
 environment.start();
 
 environment.synchronizer.on('error', err => {

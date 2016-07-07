@@ -7,7 +7,7 @@ import { WebSocketClientConnector } from 'locksmith-connector-ws';
 let connector = new WebSocketClientConnector('ws://localhost:23482');
 
 let environment = new Environment(process.argv[2] || 'client', connector);
-connector.start();
+environment.start();
 
 environment.synchronizer.on('error', err => {
   console.log((err && err.stack) || err);
