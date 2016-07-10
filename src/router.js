@@ -6,13 +6,13 @@ const debug = require('debug')('IoTLogic:router');
 // Synchronizer will assume that this is an connector, while connector will
 // assume that this is an synchronizer.
 export default class Router extends EventEmitter {
-  constructor(connector, host, createHandler) {
+  constructor(connector, host, connectHandler) {
     super();
     this.connector = connector;
     this.connector.synchronizer = this;
     this.host = host;
     this.synchronizers = {};
-    this.createHandler = createHandler;
+    this.connectHandler = connectHandler;
   }
   addSynchronizer(name, synchronizer) {
     debug('Synchronizer ' + name + ' added');
@@ -87,14 +87,18 @@ export default class Router extends EventEmitter {
     if (this.host) {
       // TODO we should do authentication and check where it belongs.
       debug('Connection received');
-      for (let key in this.synchronizers) {
-        this.synchronizers[key].handleConnect(data, clientId);
+      if (this.connectHandler) {
+        this.connectHandler(data, clientId);
+      } else {
+        for (let key in this.synchronizers) {
+          this.synchronizers[key].handleConnect(data, clientId);
+        }
       }
     } else {
       // Create synchronizer if it doesn't exists.
       if (data && this.synchronizers[data.name] == null) {
         debug('Creating synchronizer ' + data.name);
-        if (this.createHandler) this.createHandler(data);
+        if (this.connectHandler) this.connectHandler(data);
       }
       if (!this.validateData(data, clientId)) return;
       debug('Received connection from ' + data.name);

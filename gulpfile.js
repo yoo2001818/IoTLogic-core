@@ -2,6 +2,7 @@ var gulp = require('gulp');
 var babel = require('gulp-babel');
 var eslint = require('gulp-eslint');
 var mocha = require('gulp-mocha');
+var revertPath = require('gulp-revert-path');
 require('babel-register');
 
 // TODO: Add code coverage tool
@@ -30,8 +31,9 @@ gulp.task('watch', function() {
 });
 
 gulp.task('babel', function() {
-  return gulp.src(['src/**/*.js'])
+  return gulp.src(['src/**/*.*'])
     .pipe(babel())
+    .pipe(revertPath())
     .pipe(gulp.dest('lib'));
 });
 
