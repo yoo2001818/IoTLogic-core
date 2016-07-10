@@ -24,6 +24,12 @@ export default class Environment {
     let synchronizer;
     if (config == null) {
       synchronizer = new Synchronizer(this, connector, config);
+      synchronizer.on('connect', () => {
+        this.name = synchronizer.meta.name;
+        if (this.ioManager && this.ioManager.resolver) {
+          this.ioManager.resolver.name = synchronizer.meta.name;
+        }
+      });
     } else {
       synchronizer = new HostSynchronizer(this, connector, config);
       // TODO Add validator

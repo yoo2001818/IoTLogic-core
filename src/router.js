@@ -1,18 +1,21 @@
 import { EventEmitter } from 'events';
+const debug = require('debug')('IoTLogic:router');
 
 // This delegates between the synchronizer and connector, allowing multiple
 // synchronizers to be attached in single connector.
 // Synchronizer will assume that this is an connector, while connector will
 // assume that this is an synchronizer.
 export default class Router extends EventEmitter {
-  constructor(connector, host) {
+  constructor(connector, host, createHandler) {
     super();
     this.connector = connector;
     this.connector.synchronizer = this;
     this.host = host;
     this.synchronizers = {};
+    this.createHandler = createHandler;
   }
   addSynchronizer(name, synchronizer) {
+    debug('Synchronizer ' + name + ' added');
     this.synchronizers[name] = synchronizer;
     // Create a shim object for hooking
     synchronizer.connector = {
@@ -23,19 +26,25 @@ export default class Router extends EventEmitter {
         return this.connector.getClientId();
       },
       push: (data, clientId) => {
+        debug('Sending push from ' + name);
         this.connector.push({ name, data }, clientId);
       },
       ack: (data, clientId) => {
+        debug('Sending ack from ' + name);
         this.connector.ack({ name, data }, clientId);
       },
       connect: (data, clientId) => {
-        this.connector.connect({ name, data }, clientId);
+        debug('Sending connect from ' + name);
+        // Send client ID too
+        this.connector.connect({ name, data, id: data.id }, clientId);
       },
       disconnect: (clientId) => {
+        debug('Sending disconnect from ' + name);
         // TODO Maybe we should disconnect from only one synchronizer?
         this.connector.disconnect(clientId);
       },
       error: (data, clientId) => {
+        debug('Sending error from ' + name);
         this.connector.error({ name, data }, clientId);
       }
     };
@@ -54,6 +63,7 @@ export default class Router extends EventEmitter {
     delete this.synchronizer[name];
   }
   start(data) {
+    debug('Starting up');
     // Start every synchronizer with given data.
     if (!this.host) return;
     for (let key in this.synchronizers) {
@@ -65,36 +75,49 @@ export default class Router extends EventEmitter {
   }
   handlePush(data, clientId) {
     if (!this.validateData(data, clientId)) return;
+    debug('Received push from ' + data.name);
     this.synchronizers[data.name].handlePush(data.data, clientId);
   }
   handleAck(data, clientId) {
     if (!this.validateData(data, clientId)) return;
+    debug('Received ack from ' + data.name);
     this.synchronizers[data.name].handleAck(data.data, clientId);
   }
   handleConnect(data, clientId) {
     if (this.host) {
       // TODO we should do authentication and check where it belongs.
+      debug('Connection received');
       for (let key in this.synchronizers) {
         this.synchronizers[key].handleConnect(data, clientId);
       }
     } else {
-      // TODO Create synchronizer if it doesn't exists.
-      console.log(data);
+      // Create synchronizer if it doesn't exists.
       if (data && this.synchronizers[data.name] == null) {
-        console.log('Missing synchronizer');
+        debug('Creating synchronizer ' + data.name);
+        if (this.createHandler) this.createHandler(data);
       }
       if (!this.validateData(data, clientId)) return;
+      debug('Received connection from ' + data.name);
       this.synchronizers[data.name].handleConnect(data.data, clientId);
     }
   }
   handleError(data, clientId) {
-    if (data != null && data.global) {
-      this.emit('error', data.data, clientId);
+    if (data == null || (!data.global && data.data == null)) {
+      debug('Received an error');
+      this.emit('error', data, clientId);
+      return;
     }
-    this.validateData(data, clientId);
+    if (data != null && data.global) {
+      debug('Received a global error');
+      this.emit('error', data.data, clientId);
+      return;
+    }
+    if (!this.validateData(data, clientId)) return;
+    debug('Received an error from ' + data.name);
     this.synchronizers[data.name].handleError(data.data, clientId);
   }
   handleDisconnect(clientId) {
+    debug('Received disconnect');
     for (let key in this.synchronizers) {
       this.synchronizers[key].handleDisconnect(clientId);
     }
@@ -108,5 +131,6 @@ export default class Router extends EventEmitter {
       this.connector.error(err, clientId);
       return false;
     }
+    return true;
   }
 }

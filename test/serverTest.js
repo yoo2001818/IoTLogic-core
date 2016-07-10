@@ -12,23 +12,28 @@ let connector = new WebSocketServerConnector({
 
 let router = new Router(connector, true);
 
-let environment = new Environment('server', router, {
-  dynamic: true,
-  dynamicPushWait: 10,
-  dynamicTickWait: 10,
-  fixedTick: 50,
-  fixedBuffer: 0,
-  disconnectWait: 10000,
-  freezeWait: 1000
-});
+function createEnvironment(name) {
+  let environment = new Environment('server', router, {
+    dynamic: true,
+    dynamicPushWait: 10,
+    dynamicTickWait: 10,
+    fixedTick: 50,
+    fixedBuffer: 0,
+    disconnectWait: 10000,
+    freezeWait: 1000
+  });
 
-router.addSynchronizer('main', environment.synchronizer);
+  router.addSynchronizer(name, environment.synchronizer);
 
-if (process.argv[2]) {
-  // Read payload file
-  let payload = fs.readFileSync(process.argv[2], 'utf-8');
-  environment.setPayload(payload);
+  if (process.argv[2]) {
+    // Read payload file
+    let payload = fs.readFileSync(process.argv[2], 'utf-8');
+    environment.setPayload(payload);
+  }
 }
+
+createEnvironment('main');
+createEnvironment('test');
 
 connector.start();
 
@@ -48,6 +53,10 @@ router.on('unfreeze', () => {
   console.log('Synchronizer unfrozen');
 });
 
+// :/
+let envKey = null;
+let environment = null;
+
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout
@@ -57,8 +66,36 @@ console.log('IoTLogic-core REPL (Server)');
 
 let backlog = '';
 
-const read = (msg = 'scm@server> ') => {
+function getHeader() {
+  if (!environment) {
+    return 'not selected> ';
+  } else {
+    return envKey + '@' + environment.name + '> ';
+  }
+}
+
+const read = (msg = getHeader()) => {
   rl.question(msg, (answer) => {
+    if (/^ls$/.test(answer)) {
+      console.log(Object.keys(router.synchronizers));
+      read();
+      return;
+    }
+    if (/^select (.+)$/.test(answer)) {
+      let args = /^select (.+)$/.exec(answer);
+      let name = args[1];
+      if (router.synchronizers[name]) {
+        environment = router.synchronizers[name].machine;
+        envKey = name;
+      }
+      read();
+      return;
+    }
+    if (environment == null) {
+      console.log('Please select the environment first.');
+      read();
+      return;
+    }
     let code = backlog + answer;
     try {
       // Dry-run the code
