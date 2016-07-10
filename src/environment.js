@@ -27,6 +27,20 @@ export default class Environment {
     } else {
       synchronizer = new HostSynchronizer(this, connector, config);
       // TODO Add validator
+      synchronizer.on('start', () => {
+        if (!synchronizer.host) return;
+        let selfId = synchronizer.connector.getHostId();
+        // Forcefully override meta data
+        synchronizer.clients[selfId].meta = {
+          name: this.name,
+          host: true
+        };
+        this.clientList = [Object.assign({},
+          this.synchronizer.clients[selfId].meta,
+          { id: selfId }
+        )];
+        this.runPayload();
+      });
       synchronizer.on('connect', clientId => {
         synchronizer.push({
           type: 'connect',
@@ -45,7 +59,6 @@ export default class Environment {
     connector.synchronizer = synchronizer;
 
     this.synchronizer = synchronizer;
-    this.connector = connector;
   }
   reset() {
     if (this.headless) return;
@@ -108,22 +121,6 @@ export default class Environment {
   loadState(state) {
     this.setPayload(state.payload);
     this.clientList = state.clientList;
-  }
-  start() {
-    this.connector.start({
-      name: this.name,
-      host: this.synchronizer.host
-    });
-    // Populate client list; synchronizer doesn't emit connect event for
-    // host.
-    if (this.synchronizer.host) {
-      let selfId = this.connector.getHostId();
-      this.clientList = [Object.assign({},
-        this.synchronizer.clients[selfId].meta,
-        { id: selfId }
-      )];
-      this.runPayload();
-    }
   }
   run(action) {
     if (action == null) return;

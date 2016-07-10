@@ -64,11 +64,11 @@ export default class Router extends EventEmitter {
     // What?
   }
   handlePush(data, clientId) {
-    this.validateData(data, clientId);
+    if (!this.validateData(data, clientId)) return;
     this.synchronizers[data.name].handlePush(data.data, clientId);
   }
   handleAck(data, clientId) {
-    this.validateData(data, clientId);
+    if (!this.validateData(data, clientId)) return;
     this.synchronizers[data.name].handleAck(data.data, clientId);
   }
   handleConnect(data, clientId) {
@@ -78,7 +78,12 @@ export default class Router extends EventEmitter {
         this.synchronizers[key].handleConnect(data, clientId);
       }
     } else {
-      this.validateData(data, clientId);
+      // TODO Create synchronizer if it doesn't exists.
+      console.log(data);
+      if (data && this.synchronizers[data.name] == null) {
+        console.log('Missing synchronizer');
+      }
+      if (!this.validateData(data, clientId)) return;
       this.synchronizers[data.name].handleConnect(data.data, clientId);
     }
   }
@@ -98,8 +103,10 @@ export default class Router extends EventEmitter {
     if (data == null || data.name == null ||
       this.synchronizers[data.name] == null
     ) {
-      this.connector.error({ global: true, data: 'Data packet is malformed' }
-      , clientId);
+      let err = { global: true, data: 'Data packet is malformed' };
+      this.emit('error', null, err.data, clientId);
+      this.connector.error(err, clientId);
+      return false;
     }
   }
 }

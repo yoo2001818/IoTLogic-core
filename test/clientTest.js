@@ -1,4 +1,5 @@
 import Environment from '../src/environment';
+import Router from '../src/router';
 import readline from 'readline';
 import { tokenize, parse } from 'r6rs';
 
@@ -6,24 +7,33 @@ import { WebSocketClientConnector } from 'locksmith-connector-ws';
 
 let connector = new WebSocketClientConnector('ws://localhost:23482');
 
-let environment = new Environment(process.argv[2] || 'client', connector);
-environment.start();
+let router = new Router(connector);
 
-environment.synchronizer.on('error', err => {
+connector.start({
+  name: process.argv[2] || 'client'
+});
+
+router.on('error', err => {
   console.log((err && err.stack) || err);
 });
-environment.synchronizer.on('connect', () => {
+router.on('connect', () => {
   console.log('Connected!');
 });
-environment.synchronizer.on('disconnect', () => {
+router.on('disconnect', () => {
   console.log('Disconnected!');
 });
-environment.synchronizer.on('freeze', () => {
+router.on('freeze', () => {
   console.log('Synchronizer frozen');
 });
-environment.synchronizer.on('unfreeze', () => {
+router.on('unfreeze', () => {
   console.log('Synchronizer unfrozen');
 });
+
+// :/
+let environment = {
+  name: 'not selected',
+  synchronizer: {}
+};
 
 const rl = readline.createInterface({
   input: process.stdin,

@@ -1,4 +1,5 @@
 import Environment from '../src/environment';
+import Router from '../src/router';
 import readline from 'readline';
 import fs from 'fs';
 import { tokenize, parse } from 'r6rs';
@@ -9,7 +10,9 @@ let connector = new WebSocketServerConnector({
   port: 23482
 });
 
-let environment = new Environment('server', connector, {
+let router = new Router(connector, true);
+
+let environment = new Environment('server', router, {
   dynamic: true,
   dynamicPushWait: 10,
   dynamicTickWait: 10,
@@ -19,27 +22,29 @@ let environment = new Environment('server', connector, {
   freezeWait: 1000
 });
 
+router.addSynchronizer('main', environment.synchronizer);
+
 if (process.argv[2]) {
   // Read payload file
   let payload = fs.readFileSync(process.argv[2], 'utf-8');
   environment.setPayload(payload);
 }
 
-environment.start();
+connector.start();
 
-environment.synchronizer.on('error', err => {
+router.on('error', err => {
   console.log((err && err.stack) || err);
 });
-environment.synchronizer.on('connect', () => {
+router.on('connect', () => {
   console.log('Connected!');
 });
-environment.synchronizer.on('disconnect', () => {
+router.on('disconnect', () => {
   console.log('Disconnected!');
 });
-environment.synchronizer.on('freeze', () => {
+router.on('freeze', () => {
   console.log('Synchronizer frozen');
 });
-environment.synchronizer.on('unfreeze', () => {
+router.on('unfreeze', () => {
   console.log('Synchronizer unfrozen');
 });
 
