@@ -5,7 +5,8 @@ import { tokenize, parse } from 'r6rs';
 
 import { WebSocketClientConnector } from 'locksmith-connector-ws';
 
-let connector = new WebSocketClientConnector('ws://localhost:23482');
+let connector = new WebSocketClientConnector(
+  'ws://localhost:23482/' + process.argv[2]);
 
 let router = new Router(connector, false, data => {
   let environment = new Environment('', router);
@@ -13,17 +14,19 @@ let router = new Router(connector, false, data => {
 });
 
 connector.start({
+  // Not necessary though, however this is used for standalone server
+  // compatibility.
   name: process.argv[2] || 'client'
 });
 
-router.on('error', err => {
+router.on('error', (name, err) => {
   console.log((err && err.stack) || err);
 });
-router.on('connect', () => {
-  console.log('Connected!');
+router.on('connect', (name) => {
+  console.log('Connected!', name);
 });
-router.on('disconnect', () => {
-  console.log('Disconnected!');
+router.on('disconnect', (name) => {
+  console.log('Disconnected!', name);
 });
 router.on('freeze', () => {
   console.log('Synchronizer frozen');

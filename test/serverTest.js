@@ -37,14 +37,14 @@ createEnvironment('test');
 
 connector.start();
 
-router.on('error', err => {
+router.on('error', (name, err) => {
   console.log((err && err.stack) || err);
 });
-router.on('connect', () => {
-  console.log('Connected!');
+router.on('connect', (name) => {
+  console.log('Connected!', name);
 });
-router.on('disconnect', () => {
-  console.log('Disconnected!');
+router.on('disconnect', (name) => {
+  console.log('Disconnected!', name);
 });
 router.on('freeze', () => {
   console.log('Synchronizer frozen');

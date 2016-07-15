@@ -85,8 +85,12 @@ export default class Router extends EventEmitter {
   }
   handleConnect(data, clientId) {
     if (this.host) {
-      // TODO we should do authentication and check where it belongs.
       debug('Connection received');
+      // Just to emit connect event on the client side.
+      this.emit('connect', true, clientId);
+      this.connector.connect({
+        global: true
+      }, clientId);
       if (this.connectHandler) {
         this.connectHandler(data, clientId);
       } else {
@@ -95,6 +99,11 @@ export default class Router extends EventEmitter {
         }
       }
     } else {
+      if (data && data.global) {
+        debug('Received global connection');
+        this.emit('connect', true, clientId);
+        return;
+      }
       // Create synchronizer if it doesn't exists.
       if (data && this.synchronizers[data.name] == null) {
         debug('Creating synchronizer ' + data.name);
@@ -108,12 +117,12 @@ export default class Router extends EventEmitter {
   handleError(data, clientId) {
     if (data == null || (!data.global && data.data == null)) {
       debug('Received an error');
-      this.emit('error', data, clientId);
+      this.emit('error', true, data, clientId);
       return;
     }
     if (data != null && data.global) {
       debug('Received a global error');
-      this.emit('error', data.data, clientId);
+      this.emit('error', true, data.data, clientId);
       return;
     }
     if (!this.validateData(data, clientId)) return;
@@ -122,6 +131,7 @@ export default class Router extends EventEmitter {
   }
   handleDisconnect(clientId) {
     debug('Received disconnect');
+    this.emit('disconnect', true, clientId);
     for (let key in this.synchronizers) {
       this.synchronizers[key].handleDisconnect(clientId);
     }
@@ -131,7 +141,7 @@ export default class Router extends EventEmitter {
       this.synchronizers[data.name] == null
     ) {
       let err = { global: true, data: 'Data packet is malformed' };
-      this.emit('error', null, err.data, clientId);
+      this.emit('error', true, err.data, clientId);
       this.connector.error(err, clientId);
       return false;
     }
