@@ -60,7 +60,7 @@ export default class Router extends EventEmitter {
     // TODO Shouldn't we send connect event to other clients?
   }
   removeSynchronizer(name) {
-    delete this.synchronizer[name];
+    delete this.synchronizers[name];
   }
   start(data) {
     debug('Starting up');
