@@ -156,6 +156,11 @@ export default class Environment {
       let pair = new PairValue(listener.callback, dataVal);
       return this.machine.evaluate(pair, true);
     }
+    case 'reset': {
+      this.setPayload(action.data);
+      this.reset();
+      break;
+    }
     case 'connect':
       // Should connect / disconnect be considered as I/O event too?
       console.log('A client connected');
