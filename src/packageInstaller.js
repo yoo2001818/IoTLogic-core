@@ -8,6 +8,8 @@ export default function packageInstaller(name) {
   debug('Loading package ' + name);
   try {
     library = require(name);
+    // Babel import / export support
+    if (library.default) library = library.default;
   } catch (e) {
     // It doesn't exists! Try to install the package.
     return new Promise((resolve, reject) => {
@@ -20,7 +22,10 @@ export default function packageInstaller(name) {
         }
         try {
           debug('Package loaded; done');
-          return resolve(require(name));
+          let library = require(name);
+          // I hate Babel
+          if (library.default) library = library.default;
+          return resolve(library);
         } catch (e) {
           // Still, nope.
           debug('Loading failed: ' + e.stack);

@@ -31,7 +31,7 @@ gulp.task('watch', function() {
 });
 
 gulp.task('babel', function() {
-  return gulp.src(['src/**/*.*'])
+  return gulp.src(['src/**/*.*', '!src/**/*.json'])
     .pipe(babel())
     .pipe(revertPath())
     .pipe(gulp.dest('lib'));

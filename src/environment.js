@@ -5,6 +5,8 @@ import asyncBaseLib from './asyncBaseLib';
 import baseLib from './baseLib';
 import Resolver from './resolver';
 
+const debug = require('debug')('IoTLogic:environment');
+
 // Since base library *never* changes, I'm pretty sure it's possible to
 // cache library data on global variables.
 // Async library has almost no cost for reloading, so we don't need caching
@@ -12,9 +14,10 @@ import Resolver from './resolver';
 const LIBRARY_CACHE = {};
 
 export default class Environment {
-  constructor(name, connector, config, headless) {
+  constructor(name, connector, config, headless, globalAsyncLibs) {
     this.name = name;
     this.headless = headless;
+    this.globalAsyncLibs = globalAsyncLibs || [];
     // Initialize Scheme environment
     this.reset();
     // We don't need clients variable - since referencing client by ID is
@@ -94,6 +97,9 @@ export default class Environment {
     }
     LIBRARY_CACHE.loaded = true;
     this.ioManager.resolver.addLibrary(asyncBaseLib);
+    this.globalAsyncLibs.forEach(lib => {
+      this.ioManager.resolver.addLibrary(lib);
+    });
 
     // Expose the Environment object to base library
     this.machine.asyncIO = this.ioManager;
@@ -115,8 +121,8 @@ export default class Environment {
     if (!this.headless) {
       // It's hard to serialize entire Scheme interpreter state...
       // It's necessary though, however.
-      console.log(this.machine.rootParameters);
-      console.log(this.machine.expanderRoot);
+      // console.log(this.machine.rootParameters);
+      // console.log(this.machine.expanderRoot);
     }
     // Still, try to send the initial payload.
     return {
@@ -163,14 +169,14 @@ export default class Environment {
     }
     case 'connect':
       // Should connect / disconnect be considered as I/O event too?
-      console.log('A client connected');
+      debug('A client connected');
       this.clientList.push(action.data);
-      console.log(this.clientList);
-      console.log('Resetting machine state');
+      debug(this.clientList);
+      debug('Resetting machine state');
       this.reset();
       break;
     case 'disconnect': {
-      console.log('A client disconnected');
+      debug('A client disconnected');
       // Disconnection doesn't have to reset machine state.
       // Get rid of the client on the array
       let clientIndex = this.clientList.findIndex(o => o.id === action.data);
@@ -179,7 +185,7 @@ export default class Environment {
         throw new Error('Disconnect event malformed: ' + action.data);
       }
       this.clientList.splice(clientIndex, 1);
-      console.log(this.clientList);
+      debug(this.clientList);
     }
     }
   }

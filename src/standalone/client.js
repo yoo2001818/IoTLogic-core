@@ -14,11 +14,13 @@ try {
   process.exit(1);
 }
 
+let globalLibs = [];
+
 let connector = new WebSocketClientConnector(
   'ws' + config.endpoint.slice(4) + config.token);
 
 let router = new Router(connector, false, data => {
-  let environment = new Environment('', router);
+  let environment = new Environment('', router, null, false, globalLibs);
   router.addSynchronizer(data.name, environment.synchronizer);
 });
 
@@ -29,7 +31,6 @@ connector.start({
 function loadPackage(packages) {
   // Try to load it serially, since NPM install doesn't like parallel jobs
   let results = [];
-  console.log(packages);
   let promise = packages.reduce((previous, name) => {
     return previous.then(result => {
       if (result !== false) {
@@ -42,7 +43,6 @@ function loadPackage(packages) {
     if (result !== false) {
       results.push(result);
     }
-    console.log(results);
     return results;
   });
 }
@@ -54,7 +54,14 @@ router.on('connect', (name) => {
   console.log('Connected!', name);
   if (name === true) {
     if (router.globalData && router.globalData.data) {
-      loadPackage(router.globalData.data);
+      loadPackage(router.globalData.data)
+      .then(results => {
+        globalLibs = results;
+        // OK! Acknowledge to the server..
+        connector.connect({
+          initialized: true
+        });
+      });
     }
   }
 });

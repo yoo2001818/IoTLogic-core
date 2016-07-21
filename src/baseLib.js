@@ -1,4 +1,5 @@
-import { NativeProcedureValue, PairValue, SymbolValue } from 'r6rs';
+import { NativeProcedureValue, PairValue, SymbolValue, StringValue,
+  BooleanValue, assert } from 'r6rs';
 
 import schemeCode from './baseLib.scm';
 
@@ -8,9 +9,19 @@ export default [
     // Should it be a symbol or a string? Since symbol can be easily compared
     // by eq? in Scheme, we should use symbols.
     let clientList = PairValue.fromArray(
-      machine.iotLogicEnv.clientList.map(v => new SymbolValue(v.name))
+      machine.iotLogicEnv.clientList
+        .filter(v => v.name !== '__server' || !v.host)
+        .map(v => new SymbolValue(v.name))
     );
     return clientList;
   }, []),
+  new NativeProcedureValue('device-alias', (list, machine) => {
+    assert(list.car, 'symbol');
+    let client = machine.iotLogicEnv.clientList.find(
+      v => v.name === list.car.value
+    );
+    if (client == null) return BooleanValue.FALSE;
+    return new StringValue(client.alias || client.name);
+  }, ['name']),
   schemeCode
 ];
