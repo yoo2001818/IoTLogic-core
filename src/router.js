@@ -41,8 +41,7 @@ export default class Router extends EventEmitter {
       },
       disconnect: (clientId) => {
         debug('Sending disconnect from ' + name);
-        // TODO Maybe we should disconnect from only one synchronizer?
-        this.connector.disconnect(clientId);
+        this.connector.push({ name, disconnect: true }, clientId);
       },
       error: (data, clientId) => {
         debug('Sending error from ' + name);
@@ -76,6 +75,14 @@ export default class Router extends EventEmitter {
   }
   handlePush(data, clientId) {
     if (!this.validateData(data, clientId)) return;
+    if (data.disconnect) {
+      debug('Received disconnect from ' + data.name);
+      this.synchronizers[data.name].handleDisconnect(data.data, clientId);
+      if (!this.host) {
+        this.removeSynchronizer(data.name);
+      }
+      return;
+    }
     debug('Received push from ' + data.name);
     this.synchronizers[data.name].handlePush(data.data, clientId);
   }
