@@ -1,8 +1,12 @@
 {
   "name": "iotlogic-core",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Core part of IoTLogic",
   "main": "lib/index.js",
+  "bin": {
+    "IoTLogic-config": "./lib/standalone/configWizard.js",
+    "IoTLogic": "./lib/standalone/client.js"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import Environment from '../environment';
 import Router from '../router';
 import fs from 'fs';
