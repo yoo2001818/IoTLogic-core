@@ -115,7 +115,15 @@ export default class Environment {
   runPayload() {
     if (this.payload == null) return;
     if (this.headless) return;
-    this.machine.evaluate(this.payload);
+    try {
+      return this.machine.evaluate(this.payload);
+    } catch (e) {
+      // Inject stacktrace
+      let msg = e.message;
+      let stackTrace = this.machine.getStackTrace(true);
+      if (stackTrace) msg += '\n' + stackTrace;
+      throw new Error(msg);
+    }
   }
   getState() {
     // What if the server is headless? We have to retrieve the data
@@ -142,7 +150,15 @@ export default class Environment {
     case 'eval': {
       if (this.headless) return;
       this.machine.clearStack();
-      return this.machine.evaluate(action.data);
+      try {
+        return this.machine.evaluate(action.data);
+      } catch (e) {
+        // Inject stacktrace
+        let msg = e.message;
+        let stackTrace = this.machine.getStackTrace(true);
+        if (stackTrace) msg += '\n' + stackTrace;
+        throw new Error(msg);
+      }
     }
     case 'io': {
       if (this.headless) return;
@@ -162,7 +178,15 @@ export default class Environment {
           new PairValue(v)));
       }
       let pair = new PairValue(listener.callback, dataVal);
-      return this.machine.evaluate(pair, true);
+      try {
+        return this.machine.evaluate(pair, true);
+      } catch (e) {
+        // Inject stacktrace
+        let msg = e.message;
+        let stackTrace = this.machine.getStackTrace(true);
+        if (stackTrace) msg += '\n' + stackTrace;
+        throw new Error(msg);
+      }
     }
     case 'reset': {
       this.setPayload(action.data);

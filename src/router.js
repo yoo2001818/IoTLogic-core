@@ -83,6 +83,15 @@ export default class Router extends EventEmitter {
       }
       return;
     }
+    if (data.error) {
+      debug('Received client error from ' + data.name);
+      if (this.host) {
+        // Don't send it to the synchronizer...!
+        // TODO Also, to prevent loopback, we should do something.
+        this.emit('error', data.name, data.data, clientId, true);
+      }
+      return;
+    }
     debug('Received push from ' + data.name);
     this.synchronizers[data.name].handlePush(data.data, clientId);
   }

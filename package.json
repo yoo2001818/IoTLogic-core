@@ -1,6 +1,6 @@
 {
   "name": "iotlogic-core",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Core part of IoTLogic",
   "main": "lib/index.js",
   "bin": {
@@ -30,7 +30,7 @@
     "colors": "^1.1.2",
     "debug": "^2.2.0",
     "locksmith": "^0.2.6",
-    "locksmith-connector-ws": "^0.2.2",
+    "locksmith-connector-ws": "^0.2.4",
     "npmi": "^2.0.1",
     "prompt": "^1.0.0",
     "r6rs": "^0.1.13",

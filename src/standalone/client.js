@@ -51,6 +51,8 @@ function loadPackage(packages) {
 
 router.on('error', (name, err) => {
   console.log((err && err.stack) || err);
+  // Send the error to the server. Why? Why not?
+  router.connector.push({name, error: true, data: err.message});
 });
 router.on('connect', (name) => {
   console.log('Connected!', name);
