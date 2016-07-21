@@ -101,7 +101,7 @@ function loadDeviceList() {
         if (result.id === '') {
           createNewDevice();
         } else {
-          let id = parseInt(result.id);
+          let id = parseInt(result.id) - 1;
           if (pcDevices[id] == null) {
             askDeviceId();
             return;
@@ -129,12 +129,12 @@ function loadDeviceList() {
   });
 }
 
-function regenerateDevice(device) {
-  let name = device.alias ? `${device.alias} (${device.name})` :
-    device.name;
+function regenerateDevice(obj) {
+  let name = obj.alias ? `${obj.alias} (${obj.name})` :
+    obj.name;
   console.log(colors.white('Selected device ' + name));
   request.post({
-    url: '/devices/' + device.name + '/token', json: true
+    url: '/devices/' + obj.name + '/token', json: true
   }, (err, response) => {
     if (err) {
       console.log(err.stack);

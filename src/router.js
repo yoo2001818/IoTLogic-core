@@ -13,6 +13,7 @@ export default class Router extends EventEmitter {
     this.host = host;
     this.synchronizers = {};
     this.connectHandler = connectHandler;
+    this.globalData = null;
   }
   addSynchronizer(name, synchronizer) {
     debug('Synchronizer ' + name + ' added');
@@ -86,14 +87,15 @@ export default class Router extends EventEmitter {
   handleConnect(data, clientId) {
     if (this.host) {
       debug('Connection received');
-      // Just to emit connect event on the client side.
-      this.emit('connect', true, clientId);
-      this.connector.connect({
-        global: true
-      }, clientId);
       if (this.connectHandler) {
+        this.emit('connect', true, clientId);
         this.connectHandler(data, clientId);
       } else {
+        // Just to emit connect event on the client side.
+        this.emit('connect', true, clientId);
+        this.connector.connect({
+          global: true
+        }, clientId);
         for (let key in this.synchronizers) {
           this.synchronizers[key].handleConnect(data, clientId);
         }
@@ -101,7 +103,10 @@ export default class Router extends EventEmitter {
     } else {
       if (data && data.global) {
         debug('Received global connection');
-        this.emit('connect', true, clientId);
+        this.globalData = data.data;
+        // Clients need to call router.connector.connect('ok'); to continue
+        // connection. :S
+        this.emit('connect', true, clientId, data.data);
         return;
       }
       // Create synchronizer if it doesn't exists.
