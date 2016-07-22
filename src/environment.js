@@ -19,7 +19,9 @@ export default class Environment {
     this.headless = headless;
     this.globalAsyncLibs = globalAsyncLibs || [];
     // Initialize Scheme environment
-    this.reset();
+    if (config != null) {
+      this.reset();
+    }
     // We don't need clients variable - since referencing client by ID is
     // not used anyway.
     this.clientList = [];

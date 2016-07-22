@@ -28,6 +28,10 @@ export default {
       setTimeout(() => callback(['Library not found'], true), 0);
     }
   },
+  'functions': (params, callback, _, io) => {
+    let arr = Object.keys(io.resolver.directives);
+    setTimeout(() => callback([arr], true), 0);
+  },
   'timer': (params, callback) => {
     let options;
     if (params.type === NUMBER) {

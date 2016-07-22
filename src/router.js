@@ -74,21 +74,21 @@ export default class Router extends EventEmitter {
     // What?
   }
   handlePush(data, clientId) {
-    if (!this.validateData(data, clientId)) return;
-    if (data.disconnect) {
-      debug('Received disconnect from ' + data.name);
-      this.synchronizers[data.name].handleDisconnect(data.data, clientId);
-      if (!this.host) {
-        this.removeSynchronizer(data.name);
-      }
-      return;
-    }
     if (data.error) {
       debug('Received client error from ' + data.name);
       if (this.host) {
         // Don't send it to the synchronizer...!
         // TODO Also, to prevent loopback, we should do something.
         this.emit('error', data.name, data.data, clientId, true);
+      }
+      return;
+    }
+    if (!this.validateData(data, clientId)) return;
+    if (data.disconnect) {
+      debug('Received disconnect from ' + data.name);
+      this.synchronizers[data.name].handleDisconnect(data.data, clientId);
+      if (!this.host) {
+        this.removeSynchronizer(data.name);
       }
       return;
     }

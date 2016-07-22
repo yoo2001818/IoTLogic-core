@@ -1,13 +1,15 @@
 import npmi from 'npmi';
+import path from 'path';
 
 const debug = require('debug')('IoTLogic:packageInstaller');
 
 export default function packageInstaller(name) {
   // Try to resolve the packages, and install if it doesn't exists.
   let library;
+  let namePath = path.resolve(process.cwd(), 'node_modules', name);
   debug('Loading package ' + name);
   try {
-    library = require(name);
+    library = require(namePath);
     // Babel import / export support
     if (library.default) library = library.default;
   } catch (e) {
@@ -22,7 +24,8 @@ export default function packageInstaller(name) {
         }
         try {
           debug('Package loaded; done');
-          let library = require(name);
+          delete require.cache[require.resolve(namePath)];
+          let library = require(namePath);
           // I hate Babel
           if (library.default) library = library.default;
           return resolve(library);

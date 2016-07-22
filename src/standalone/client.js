@@ -65,6 +65,10 @@ router.on('connect', (name) => {
         connector.connect({
           initialized: true
         });
+      }, err => {
+        // We're doomed! sort of.
+        // Let's patiently wait until server disconnects the client.
+        router.emit('error', null, err);
       });
     }
   }
