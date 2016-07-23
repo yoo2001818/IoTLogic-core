@@ -20,10 +20,6 @@ export default class Environment {
     this.globalAsyncLibs = globalAsyncLibs || [];
     this.resolver = resolver || new Resolver(this.name);
     this.runOnStart = true;
-    // Initialize Scheme environment
-    if (config != null) {
-      this.reset();
-    }
     // We don't need clients variable - since referencing client by ID is
     // not used anyway.
     this.clientList = [];
@@ -52,7 +48,7 @@ export default class Environment {
           this.synchronizer.clients[selfId].meta,
           { id: selfId }
         )];
-        if (this.runOnStart) this.runPayload();
+        this.reset(true);
       });
       synchronizer.on('connect', clientId => {
         synchronizer.push({
@@ -73,7 +69,7 @@ export default class Environment {
 
     this.synchronizer = synchronizer;
   }
-  reset() {
+  reset(start = false) {
     if (this.headless) return;
     if (this.ioManager != null) this.ioManager.cancelAll();
     this.machine = new Machine(!LIBRARY_CACHE.loaded, LIBRARY_CACHE);
@@ -112,7 +108,9 @@ export default class Environment {
     this.machine.asyncIO = this.ioManager;
     this.machine.iotLogicEnv = this;
 
-    this.runPayload();
+    if (this.handleReset) this.handleReset();
+
+    if (!start || this.runOnStart) this.runPayload();
   }
   setPayload(payload) {
     this.payload = payload;
