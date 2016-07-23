@@ -14,10 +14,11 @@ const debug = require('debug')('IoTLogic:environment');
 const LIBRARY_CACHE = {};
 
 export default class Environment {
-  constructor(name, connector, config, headless, globalAsyncLibs) {
+  constructor(name, connector, config, headless, globalAsyncLibs, resolver) {
     this.name = name;
     this.headless = headless;
     this.globalAsyncLibs = globalAsyncLibs || [];
+    this.resolver = resolver || new Resolver(this.name);
     // Initialize Scheme environment
     if (config != null) {
       this.reset();
@@ -70,8 +71,6 @@ export default class Environment {
     connector.synchronizer = synchronizer;
 
     this.synchronizer = synchronizer;
-
-    this.resolver = new Resolver(this.name);
   }
   reset() {
     if (this.headless) return;

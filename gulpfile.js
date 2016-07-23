@@ -8,7 +8,8 @@ require('babel-register');
 // TODO: Add code coverage tool
 
 gulp.task('lint', function () {
-  return gulp.src(['src/**/*.js', 'client-test/**/*.js'])
+  return gulp.src(['src/**/*.js', 'client-test/**/*.js',
+    '!src/standalone/node_modules/**/*'])
     .pipe(eslint())
     .pipe(eslint.format())
     .pipe(eslint.failOnError());
@@ -31,7 +32,8 @@ gulp.task('watch', function() {
 });
 
 gulp.task('babel', function() {
-  return gulp.src(['src/**/*.*', '!src/**/*.json'])
+  return gulp.src(['src/**/*.*', '!src/**/*.json',
+    '!src/standalone/node_modules/**/*'])
     .pipe(babel())
     .pipe(revertPath())
     .pipe(gulp.dest('lib'));
