@@ -171,12 +171,10 @@ export default class Environment {
       let listener = this.ioManager.listeners[action.id];
       // This can't happen! Still, try to ignore it.
       if (listener == null) return;
-      if (listener.callback == null) {
-        if (listener.once || action.remove === true) {
-          this.ioManager.cancel(listener.id);
-        }
-        return;
+      if (listener.once || action.remove === true) {
+        this.ioManager.cancel(listener.id);
       }
+      if (listener.callback == null) return;
       let dataVal = desugar(action.data);
       if (dataVal) {
         dataVal = dataVal.map(v => new PairValue(new SymbolValue('quote'),
