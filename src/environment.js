@@ -70,6 +70,8 @@ export default class Environment {
     connector.synchronizer = synchronizer;
 
     this.synchronizer = synchronizer;
+
+    this.resolver = new Resolver(this.name);
   }
   reset() {
     if (this.headless) return;
@@ -77,7 +79,8 @@ export default class Environment {
     this.machine = new Machine(!LIBRARY_CACHE.loaded, LIBRARY_CACHE);
     // Yes - it's hardcoded, but it shouldn't be changed anyway
     this.machine.quota = 100000;
-    this.ioManager = new IOManager(this.machine, new Resolver(this.name),
+    this.resolver.name = this.name;
+    this.ioManager = new IOManager(this.machine, this.resolver,
       (listener, data, remove) => {
         // If listener's callback is null, that means it's null on other side
         // too - we just ignore it.
