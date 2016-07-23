@@ -1,6 +1,6 @@
 {
   "name": "iotlogic-core",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "description": "Core part of IoTLogic",
   "main": "lib/index.js",
   "bin": {

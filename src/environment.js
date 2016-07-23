@@ -19,6 +19,7 @@ export default class Environment {
     this.headless = headless;
     this.globalAsyncLibs = globalAsyncLibs || [];
     this.resolver = resolver || new Resolver(this.name);
+    this.runOnStart = true;
     // Initialize Scheme environment
     if (config != null) {
       this.reset();
@@ -51,7 +52,7 @@ export default class Environment {
           this.synchronizer.clients[selfId].meta,
           { id: selfId }
         )];
-        this.runPayload();
+        if (this.runOnStart) this.runPayload();
       });
       synchronizer.on('connect', clientId => {
         synchronizer.push({

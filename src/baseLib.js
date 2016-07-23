@@ -13,7 +13,7 @@ export default [
         .filter(v => v.name !== '__server' || !v.host)
         .map(v => new SymbolValue(v.name))
     );
-    return clientList;
+    return clientList || new PairValue();
   }, []),
   new NativeProcedureValue('device-alias', (list, machine) => {
     assert(list.car, 'symbol');
