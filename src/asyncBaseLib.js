@@ -41,5 +41,8 @@ export default {
     }
     let timerId = setInterval(callback, options);
     return () => clearInterval(timerId);
+  },
+  'getDate': (params, callback) => {
+    setTimeout(() => callback([Date.now()], true), 0);
   }
 };

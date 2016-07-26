@@ -5,7 +5,7 @@ import prompt from 'prompt';
 import requestLib from 'request';
 import colors from 'colors/safe';
 
-const ENDPOINT = 'http://localhost:23482/';
+const ENDPOINT = process.argv[2] || 'http://iotlogic.kkiro.kr/';
 
 let user = null;
 let devices = null;

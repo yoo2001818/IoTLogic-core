@@ -86,6 +86,39 @@ export default class Environment {
           }
           return;
         }
+        // Dry-run the code; If it doesn't do any mutation, it can be run from
+        // the client.
+        let dataVal = desugar(data);
+        if (dataVal) {
+          dataVal = dataVal.map(v => new PairValue(new SymbolValue('quote'),
+            new PairValue(v)));
+        }
+        let pair = new PairValue(listener.callback, dataVal);
+        let mutated;
+        try {
+          this.machine.clearStack();
+          mutated = this.machine.evaluate(pair, true, false,
+            (expression, procedure, stackData) => {
+              // TODO Optimization
+              console.log(expression, procedure, stackData);
+              return true;
+            });
+        } catch (e) {
+          // It's pretty clear that it's not mutating anything
+          // Still, try to send the error to the synchronizer
+          // Inject stacktrace
+          let msg = e.message;
+          let stackTrace = this.machine.getStackTrace(true);
+          if (stackTrace) msg += '\n' + stackTrace;
+          this.synchronizer.emit('error', new Error(msg));
+        }
+        if (mutated !== true) {
+          // Well, we've just finished running it - finalize the event.
+          if (listener.once || remove === true) {
+            this.ioManager.cancel(listener.id);
+          }
+          return;
+        }
         // :P... Data must be a plain JSON object.
         this.synchronizer.push({
           type: 'io',
@@ -180,6 +213,7 @@ export default class Environment {
       }
       let pair = new PairValue(listener.callback, dataVal);
       try {
+        this.machine.clearStack();
         return this.machine.evaluate(pair, true);
       } catch (e) {
         // Inject stacktrace
@@ -190,7 +224,7 @@ export default class Environment {
       }
     }
     case 'reset': {
-      this.setPayload(action.data);
+      if (action.data != null) this.setPayload(action.data);
       this.reset();
       break;
     }
@@ -199,6 +233,7 @@ export default class Environment {
       debug('A client connected');
       this.clientList.push(action.data);
       debug(this.clientList);
+      if (action.noReset) break;
       debug('Resetting machine state');
       this.reset();
       break;
@@ -213,6 +248,9 @@ export default class Environment {
       }
       this.clientList.splice(clientIndex, 1);
       debug(this.clientList);
+      if (action.noReset) break;
+      debug('Resetting machine state');
+      this.reset();
     }
     }
   }
