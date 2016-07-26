@@ -20,6 +20,7 @@ export default class Environment {
     this.globalAsyncLibs = globalAsyncLibs || [];
     this.resolver = resolver || new Resolver(this.name);
     this.runOnStart = true;
+    this.noReset = true;
     // We don't need clients variable - since referencing client by ID is
     // not used anyway.
     this.clientList = [];
@@ -233,7 +234,7 @@ export default class Environment {
       debug('A client connected');
       this.clientList.push(action.data);
       debug(this.clientList);
-      if (action.noReset) break;
+      if (this.noReset) break;
       debug('Resetting machine state');
       this.reset();
       break;
@@ -248,7 +249,7 @@ export default class Environment {
       }
       this.clientList.splice(clientIndex, 1);
       debug(this.clientList);
-      if (action.noReset) break;
+      if (this.noReset) break;
       debug('Resetting machine state');
       this.reset();
     }

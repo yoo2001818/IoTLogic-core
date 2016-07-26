@@ -16,6 +16,8 @@ try {
   process.exit(1);
 }
 
+let connected = false;
+let reconnectCounter = 0;
 let globalLibs = [];
 
 let connector = new WebSocketClientConnector(
@@ -29,6 +31,16 @@ let router = new Router(connector, false, data => {
 connector.start({
   initialized: false
 });
+
+function reconnect() {
+  // Reconnect
+  reconnectCounter ++;
+  setTimeout(() => {
+    connector.start({
+      initialized: false
+    });
+  }, reconnectCounter > 3 ? 10000 : 1000);
+}
 
 function loadPackage(packages) {
   // Try to load it serially, since NPM install doesn't like parallel jobs
@@ -51,12 +63,17 @@ function loadPackage(packages) {
 
 router.on('error', (name, err) => {
   console.log((err && err.stack) || err);
+  if (name === true && !connected) {
+    return;
+  }
   // Send the error to the server. Why? Why not?
   router.connector.push({name, error: true, data: err.message});
 });
 router.on('connect', (name) => {
-  console.log('Connected!', name);
   if (name === true) {
+    console.log('Connected!');
+    connected = true;
+    reconnectCounter = 0;
     if (router.globalData && router.globalData.data) {
       loadPackage(router.globalData.data)
       .then(results => {
@@ -74,7 +91,10 @@ router.on('connect', (name) => {
   }
 });
 router.on('disconnect', (name) => {
-  console.log('Disconnected!', name);
+  if (name !== true) return;
+  console.log('Disconnected!');
+  connected = false;
+  reconnect();
 });
 router.on('freeze', () => {
   console.log('Synchronizer frozen');
