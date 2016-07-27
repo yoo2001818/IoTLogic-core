@@ -3,7 +3,7 @@ import { Machine, PairValue, SymbolValue } from 'r6rs';
 import IOManager, { desugar } from 'r6rs-async-io';
 import asyncBaseLib from './asyncBaseLib';
 import baseLib from './baseLib';
-import Resolver from './resolver';
+import Resolver, { unwrapKeyword } from './resolver';
 
 const debug = require('debug')('IoTLogic:environment');
 
@@ -96,14 +96,53 @@ export default class Environment {
         }
         let pair = new PairValue(listener.callback, dataVal);
         let mutated;
+        let ioQueue = [];
+        let parentListener = {
+          id: listener.id,
+          data: data,
+          localId: listener.localId || 0,
+          parentListener: listener.parentListener
+        };
         try {
           this.machine.clearStack();
+          this.machine.parentListener = null;
           mutated = this.machine.evaluate(pair, true, false,
             (expression, procedure, stackData) => {
-              // TODO Optimization
-              console.log(expression, procedure, stackData);
-              return true;
+              // Optimization
+              if (procedure.mutable !== 'async-io') return true;
+              if (procedure.name === 'io-cancel') return true;
+              let keyword = stackData.list.car;
+              let [deviceName] = unwrapKeyword(keyword);
+              if (deviceName !== this.name) return true;
+              let ioId = listener.id + '_' + (parentListener.localId ++);
+              ioQueue.push({
+                id: ioId,
+                list: stackData.list,
+                stackData: stackData,
+                once: procedure.name !== 'io-listen'
+              });
+              stackData.ioId = ioId;
+              stackData.parentListener = parentListener;
+              stackData.stop = true;
+              stackData.result = new SymbolValue(ioId);
+              return false;
             });
+          if (mutated !== true) {
+            // Well, we've just finished running it - finalize the event.
+            if (listener.once || remove === true) {
+              this.ioManager.cancel(listener.id);
+            }
+            // Process IO queue
+            ioQueue.forEach(io => {
+              if (io.once) {
+                this.ioManager.once(io.list, io.stackData);
+              } else {
+                this.ioManager.listen(io.list, io.stackData);
+              }
+            });
+            listener.localId = parentListener.localId;
+            return;
+          }
         } catch (e) {
           // It's pretty clear that it's not mutating anything
           // Still, try to send the error to the synchronizer
@@ -113,19 +152,29 @@ export default class Environment {
           if (stackTrace) msg += '\n' + stackTrace;
           this.synchronizer.emit('error', new Error(msg));
         }
-        if (mutated !== true) {
-          // Well, we've just finished running it - finalize the event.
-          if (listener.once || remove === true) {
-            this.ioManager.cancel(listener.id);
-          }
-          return;
-        }
         // :P... Data must be a plain JSON object.
         this.synchronizer.push({
           type: 'io',
           id: listener.id,
-          data, remove
+          data, remove,
+          parentListener: listener.parentListener
         });
+      }, undefined, (frame, listener) => {
+        if (frame.ioId) {
+          listener.parentListener = frame.parentListener;
+          return frame.ioId;
+        }
+        if (frame.parentListener) {
+          listener.parentListener = frame.parentListener;
+          let lastListener = listener.parentListener;
+          return lastListener.id + '_' + (lastListener.localId ++);
+        }
+        if (this.machine.parentListener) {
+          listener.parentListener = this.machine.parentListener;
+          let lastListener = listener.parentListener;
+          return lastListener.id + '_' + (lastListener.localId ++);
+        }
+        return this.ioManager.listenerId ++;
       }
     );
     if (!LIBRARY_CACHE.loaded) {
@@ -181,12 +230,44 @@ export default class Environment {
     this.setPayload(state.payload);
     this.clientList = state.clientList;
   }
+  runIo(action, parent = false) {
+    if (action.parentListener) {
+      this.runIo(action.parentListener, true);
+    }
+    action.localId = 0;
+    // (Forcefully) handle callback from remote.
+    let listener = this.ioManager.listeners[action.id];
+    // This can't happen! Still, try to ignore it.
+    if (listener == null) return;
+    if (listener.once || action.remove === true) {
+      this.ioManager.cancel(listener.id);
+    }
+    if (listener.callback == null) return;
+    let dataVal = desugar(action.data);
+    if (dataVal) {
+      dataVal = dataVal.map(v => new PairValue(new SymbolValue('quote'),
+        new PairValue(v)));
+    }
+    let pair = new PairValue(listener.callback, dataVal);
+    try {
+      this.machine.clearStack();
+      if (parent) this.machine.parentListener = action;
+      return this.machine.evaluate(pair, true);
+    } catch (e) {
+      // Inject stacktrace
+      let msg = e.message;
+      let stackTrace = this.machine.getStackTrace(true);
+      if (stackTrace) msg += '\n' + stackTrace;
+      throw new Error(msg);
+    }
+  }
   run(action) {
     if (action == null) return;
     switch (action.type) {
     case 'eval': {
       if (this.headless) return;
       this.machine.clearStack();
+      this.machine.parentListener = null;
       try {
         return this.machine.evaluate(action.data);
       } catch (e) {
@@ -199,30 +280,7 @@ export default class Environment {
     }
     case 'io': {
       if (this.headless) return;
-      // (Forcefully) handle callback from remote.
-      let listener = this.ioManager.listeners[action.id];
-      // This can't happen! Still, try to ignore it.
-      if (listener == null) return;
-      if (listener.once || action.remove === true) {
-        this.ioManager.cancel(listener.id);
-      }
-      if (listener.callback == null) return;
-      let dataVal = desugar(action.data);
-      if (dataVal) {
-        dataVal = dataVal.map(v => new PairValue(new SymbolValue('quote'),
-          new PairValue(v)));
-      }
-      let pair = new PairValue(listener.callback, dataVal);
-      try {
-        this.machine.clearStack();
-        return this.machine.evaluate(pair, true);
-      } catch (e) {
-        // Inject stacktrace
-        let msg = e.message;
-        let stackTrace = this.machine.getStackTrace(true);
-        if (stackTrace) msg += '\n' + stackTrace;
-        throw new Error(msg);
-      }
+      return this.runIo(action);
     }
     case 'reset': {
       if (action.data != null) this.setPayload(action.data);
