@@ -77,6 +77,7 @@ export default class Environment {
     // Yes - it's hardcoded, but it shouldn't be changed anyway
     this.machine.quota = 100000;
     this.resolver.name = this.name;
+    this.ioRun = [];
     this.ioManager = new IOManager(this.machine, this.resolver,
       (listener, data, remove) => {
         // If listener's callback is null, that means it's null on other side
@@ -96,11 +97,13 @@ export default class Environment {
         }
         let pair = new PairValue(listener.callback, dataVal);
         let mutated;
+        let ioWorked = false;
         let ioQueue = [];
         let parentListener = {
           id: listener.id,
           data: data,
           localId: listener.localId || 0,
+          commits: 0,
           parentListener: listener.parentListener
         };
         try {
@@ -115,6 +118,7 @@ export default class Environment {
               let [deviceName] = unwrapKeyword(keyword);
               if (deviceName !== this.name) return true;
               let ioId = listener.id + '_' + (parentListener.localId ++);
+              parentListener.commits ++;
               ioQueue.push({
                 id: ioId,
                 list: stackData.list,
@@ -125,9 +129,10 @@ export default class Environment {
               stackData.parentListener = parentListener;
               stackData.stop = true;
               stackData.result = new SymbolValue(ioId);
+              ioWorked = true;
               return false;
             });
-          if (mutated !== true) {
+          if (mutated !== true && ioWorked) {
             // Well, we've just finished running it - finalize the event.
             if (listener.once || remove === true) {
               this.ioManager.cancel(listener.id);
@@ -141,6 +146,7 @@ export default class Environment {
               }
             });
             listener.localId = parentListener.localId;
+            this.ioRun.push(listener.id);
             return;
           }
         } catch (e) {
@@ -234,7 +240,14 @@ export default class Environment {
     if (action.parentListener) {
       this.runIo(action.parentListener, true);
     }
-    action.localId = 0;
+    let findIdx = this.ioRun.indexOf(action.id);
+    if (findIdx !== -1) {
+      this.ioRun.splice(findIdx, 1);
+      return;
+    }
+    if (action.localId != null) {
+      action.localId -= action.commits;
+    }
     // (Forcefully) handle callback from remote.
     let listener = this.ioManager.listeners[action.id];
     // This can't happen! Still, try to ignore it.

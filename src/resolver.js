@@ -1,7 +1,15 @@
 import { DefaultResolver } from 'r6rs-async-io';
 import { SYMBOL, STRING, PAIR } from 'r6rs';
 
-const NOOP = () => {};
+export const NOOP = (_, _2, listenerId, ioManager) => {
+  setTimeout(() => {
+    // Drop the event if callback is null
+    let listener = ioManager.listeners[listenerId];
+    if (listener && listener.callback == null) {
+      delete ioManager.listeners[listenerId];
+    }
+  }, 0);
+};
 
 function checkValidity(data) {
   if (data == null ||

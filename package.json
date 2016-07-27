@@ -1,6 +1,6 @@
 {
   "name": "iotlogic-core",
-  "version": "0.1.13",
+  "version": "0.1.14",
   "description": "Core part of IoTLogic",
   "main": "lib/index.js",
   "bin": {
@@ -34,7 +34,7 @@
     "npmi": "^2.0.1",
     "prompt": "^1.0.0",
     "r6rs": "^0.1.18",
-    "r6rs-async-io": "^0.1.13",
+    "r6rs-async-io": "^0.1.14",
     "request": "^2.73.0"
   }
 }
