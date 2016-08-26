@@ -149,6 +149,7 @@ export default class Environment {
             this.ioRun.push(listener.id);
             return;
           }
+          if (mutated !== true) return;
         } catch (e) {
           // It's pretty clear that it's not mutating anything
           // Still, try to send the error to the synchronizer
