@@ -34,6 +34,11 @@ export default class Environment {
           this.ioManager.resolver.name = synchronizer.meta.name;
         }
       });
+      synchronizer.on('disconnect', () => {
+        // Cancel all I/O
+        if (this.headless) return;
+        if (this.ioManager != null) this.ioManager.cancelAll();
+      });
     } else {
       synchronizer = new HostSynchronizer(this, connector, config);
       // TODO Add validator
