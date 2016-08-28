@@ -35,6 +35,11 @@ export default class Environment {
         }
       });
       synchronizer.on('disconnect', () => {
+        synchronizer.stop();
+        synchronizer.inputQueue = [];
+        synchronizer.outputQueue = [];
+        synchronizer.dynamicPushTimer = null;
+        synchronizer.fixedTickTimer = null;
         // Cancel all I/O
         if (this.headless) return;
         if (this.ioManager != null) this.ioManager.cancelAll();
