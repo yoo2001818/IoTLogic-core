@@ -157,13 +157,10 @@ export default class Router extends EventEmitter {
       this.synchronizers[key].handleDisconnect(clientId);
     }
   }
-  validateData(data, clientId) {
+  validateData(data) {
     if (data == null || data.name == null ||
       this.synchronizers[data.name] == null
     ) {
-      let err = { global: true, data: 'Data packet is malformed' };
-      this.emit('error', true, err.data, clientId);
-      this.connector.error(err, clientId);
       return false;
     }
     return true;
